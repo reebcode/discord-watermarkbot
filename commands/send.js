@@ -6,7 +6,7 @@ module.exports = {
         const Canvas = require('canvas');
         let attachment = new Discord.MessageAttachment();
         //Check if image should be watermarked
-        if (args.length === 3 || args[2] === 'watermark') {
+        if (args.length === 3 && args[3] === 'yes') {
             //Check for attachment
             if (message.attachments.first()) {
                 let canvas;
@@ -88,7 +88,7 @@ module.exports = {
                     await message.guild.members.fetch();
                     message.guild.members.cache.forEach(member => {
                         //Check if member has correct role
-                        if (member.roles.cache.has(message.mentions.roles.first().id) && !member.user.bot) {
+                        if ((member.roles.cache.has(message.mentions.roles.first().id) || higherRole(message.mentions.roles.first().id, member) != undefined) && !member.user.bot) {
                             let user = member.user.username.toLowerCase();
                             user.replace(/\s+/g, '-');
                             let uid = member.user.id;
@@ -152,7 +152,7 @@ module.exports = {
                 return message.reply('Use this command to send a message to a users private channel. "-send (@role/@user) (yes/no message) (yes/no watermark)" If sending an attachment message is optional, watermark will add a watermark if left in.');
             }
             //Send MSG command -send @role/@mention yes
-            else if (args.length === 2) {
+            else if (args.length === 2 || args[2] === 'yes') {
                 let filter = m => m.author.id === message.author.id
                 let msgtoSend;
                 //Waits for reply message to send out
@@ -169,9 +169,9 @@ module.exports = {
                 })
                 
                 async function sendMsg() {
+                    //Send to user
                     if (message.mentions.users.first()) {
-                        let user = message.mentions.users.first().username.toLowerCase();
-                        user.replace(/\s+/g, '-');
+                        let user = message.mentions.users.first().username.toLowerCase().split(" ").join("-");
                         let uid = message.mentions.users.first().id;
                         if (message.guild.channels.cache.find(channel => channel.name === user + "-private") != undefined) {
                             message.guild.channels.cache.find(channel => channel.name === user + "-private").send(msgtoSend);
@@ -206,13 +206,9 @@ module.exports = {
                         await message.guild.members.fetch();
                         message.guild.members.cache.forEach(member => {
                             //Check if member has correct role
-                            if (member.roles.cache.has(message.mentions.roles.first().id) && !member.user.bot) {
-                                let user = member.user.username.toLowerCase();
-                                console.log("USER " + user);
-                                user.replace(/\s+/g, '-');
-                                console.log("REPLACED " + user);
+                            if ((member.roles.cache.has(message.mentions.roles.first().id) || higherRole(message.mentions.roles.first().id, member) != undefined) && !member.user.bot) {
+                                let user = member.user.username.toLowerCase().split(" ").join("-");
                                 let uid = member.user.id;
-                                let tag = member.user.tag;
                                 //Check if private channel exists & send if true
                                 if (message.guild.channels.cache.find(channel => channel.name === user + "-private") != undefined) {
                                     message.guild.channels.cache.find(channel => channel.name === user + "-private").send(msgtoSend);
@@ -245,6 +241,22 @@ module.exports = {
                         console.log('done');
                     }
                 }
+            }
+        }
+
+        function higherRole(currRole, memb) {
+            //ALPHA, ANGEL, GOD, VOID, HCIGBTT
+            let ranks = ['773034879620874322', '773035077067735061','773035250849677314','773035399262109728','786628196002037770'];
+            if (ranks.includes(currRole)) {
+                var i = ranks.indexOf(currRole) + 1;
+                for (i; i <= 4; i++) {
+                    if (memb.roles.cache.has(ranks[i])) {
+                        return true;
+                    }
+                }
+            }
+            else {
+                return false;
             }
         }
     }

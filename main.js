@@ -35,4 +35,7 @@ client.on('message', message => {
     } else if (command === 'register') {
         client.commands.get('register').execute(message, args, Discord);
     }
+    else if (command === 'updateroles') {
+        client.commands.get('updateRoles').execute(message, args, Discord);
+    }
 });
