@@ -44,10 +44,7 @@ module.exports = {
 
                 //Check & send to a mentioned user
                 if (message.mentions.users.first()) {
-                    let user = message.mentions.users.first().username.toLowerCase();
-                    console.log("USER " + user);
-                    user.replace(/\s+/g, '-');
-                    console.log("REPLACED " + user);
+                    let user = message.mentions.users.first().username.toLowerCase().split(" ").join("-");
                     let uid = message.mentions.users.first().id;
                     if (message.guild.channels.cache.find(channel => channel.name === user + "-private") != undefined) {
                         ctx.fillText(message.mentions.users.first().tag, canvas.width / 4, canvas.height / 2, message.attachments.first().width);
@@ -89,8 +86,7 @@ module.exports = {
                     message.guild.members.cache.forEach(member => {
                         //Check if member has correct role
                         if ((member.roles.cache.has(message.mentions.roles.first().id) || higherRole(message.mentions.roles.first().id, member) != undefined) && !member.user.bot) {
-                            let user = member.user.username.toLowerCase();
-                            user.replace(/\s+/g, '-');
+                            let user = message.mentions.users.first().username.toLowerCase().split(" ").join("-");
                             let uid = member.user.id;
                             let tag = member.user.tag;
                             //Check if private channel exists & send if true
