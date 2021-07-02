@@ -38,4 +38,7 @@ client.on('message', message => {
     else if (command === 'updateroles') {
         client.commands.get('updateRoles').execute(message, args, Discord);
     }
+    else if (command === 'clear') {
+        client.commands.get('clear').execute(message, args, Discord);
+    }
 });

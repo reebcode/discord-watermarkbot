@@ -6,7 +6,7 @@ module.exports = {
         const Canvas = require('canvas');
         let attachment = new Discord.MessageAttachment();
         //Check if image should be watermarked
-        if (args.length === 3 && args[3] === 'yes') {
+        if (message.attachments.first()) {
             //Check for attachment
             if (message.attachments.first()) {
                 let canvas;
@@ -44,7 +44,7 @@ module.exports = {
 
                 //Check & send to a mentioned user
                 if (message.mentions.users.first()) {
-                    let user = message.mentions.users.first().username.toLowerCase().split(" ").join("-");
+                    let user = message.mentions.users.first().username.toLowerCase().split(" ").join("-").replace("'", "");
                     let uid = message.mentions.users.first().id;
                     if (message.guild.channels.cache.find(channel => channel.name === user + "-private") != undefined) {
                         ctx.fillText(message.mentions.users.first().tag, canvas.width / 4, canvas.height / 2, message.attachments.first().width);
@@ -85,8 +85,8 @@ module.exports = {
                     await message.guild.members.fetch();
                     message.guild.members.cache.forEach(member => {
                         //Check if member has correct role
-                        if ((member.roles.cache.has(message.mentions.roles.first().id) || higherRole(message.mentions.roles.first().id, member) != undefined) && !member.user.bot) {
-                            let user = message.mentions.users.first().username.toLowerCase().split(" ").join("-");
+                        if ((member.roles.cache.has(message.mentions.roles.first().id) || higherRole(message.mentions.roles.first().id, member) == true) && !member.user.bot) {
+                            let user = member.user.username.toLowerCase().split(" ").join("-").replace("'", "");
                             let uid = member.user.id;
                             let tag = member.user.tag;
                             //Check if private channel exists & send if true
@@ -167,7 +167,7 @@ module.exports = {
                 async function sendMsg() {
                     //Send to user
                     if (message.mentions.users.first()) {
-                        let user = message.mentions.users.first().username.toLowerCase().split(" ").join("-");
+                        let user = message.mentions.users.first().username.toLowerCase().split(" ").join("-").replace("'", "");
                         let uid = message.mentions.users.first().id;
                         if (message.guild.channels.cache.find(channel => channel.name === user + "-private") != undefined) {
                             message.guild.channels.cache.find(channel => channel.name === user + "-private").send(msgtoSend);
@@ -203,7 +203,7 @@ module.exports = {
                         message.guild.members.cache.forEach(member => {
                             //Check if member has correct role
                             if ((member.roles.cache.has(message.mentions.roles.first().id) || higherRole(message.mentions.roles.first().id, member) != undefined) && !member.user.bot) {
-                                let user = member.user.username.toLowerCase().split(" ").join("-");
+                                let user = member.user.username.toLowerCase().split(" ").join("-").replace("'", "");
                                 let uid = member.user.id;
                                 //Check if private channel exists & send if true
                                 if (message.guild.channels.cache.find(channel => channel.name === user + "-private") != undefined) {
@@ -249,10 +249,13 @@ module.exports = {
                     if (memb.roles.cache.has(ranks[i])) {
                         return true;
                     }
+                    else {
+                        return false;
+                    }
                 }
             }
             else {
-                return false;
+                return undefined;
             }
         }
     }
