@@ -4,8 +4,13 @@
     "description": "Discord Content Bot",
     "main": "./dist/main.js",
     "scripts": {
-        "dev": "nodemon",
-        "start": "npx tsc && node ./dist/main.js"
+      "dev": "nodemon",
+      "build-ts": "tsc",
+      "postinstall": "npm run build-ts",
+      "start": "npx tsc && node ./dist/main.js",
+      "serve": "node dist/server.js",
+      "watch-node": "nodemon dist/server.js",
+      "watch-ts": "tsc -w"
     },
     "author": "Buildoman",
     "license": "ISC",
