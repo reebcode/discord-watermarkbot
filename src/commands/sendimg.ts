@@ -95,7 +95,7 @@ export async function sendimg(message: Message, args: string[], client: Client) 
             let attachment = new MessageAttachment(canvas.toBuffer(), 'marked.jpeg')
             const targetChannel = message.guild?.channels.cache.get(CID)
             if (targetChannel?.isText()) {
-                targetChannel.send(attachment)
+                await targetChannel.send(attachment)
             }
             message.delete()
             message.reply('Sent!').then((r) => r.delete({ timeout: 10000 }))
