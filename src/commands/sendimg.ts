@@ -1,7 +1,7 @@
 // name: 'sendimg',
 // description: "Use this command to send a message to a users private channel. Syntax -send (role) (message)",
 
-import { Message, Client, MessageAttachment, User, GuildMember } from 'discord.js'
+import { Message, Client, MessageAttachment, User, GuildMember, Collection, Guild, TeamMember } from 'discord.js'
 import { CanvasRenderingContext2D } from 'canvas'
 
 export async function sendimg(message: Message, args: string[], client: Client) {
@@ -45,41 +45,49 @@ export async function sendimg(message: Message, args: string[], client: Client) 
         //Begins checking mentions
         //Refetch members, roles
         const firstRole = message.mentions.roles.first()
+        let success = false
         if (firstRole && message.guild) {
             await message.guild.members.fetch()
             await message.guild.roles.fetch()
             //Checks each member
-            message.guild.members.cache.forEach((member) => {
+            message.guild.members.cache.forEach(async (member) => {
                 //console.log(member.user)
                 //Variable for creating channels
                 let msgSent = false
                 //Check if member has correct role
-                if (
-                    (member.roles.cache.has(firstRole.id) || higherRole(firstRole.id, member) == true) &&
-                    !member.user.bot
-                ) {
-                    if (
-                        message.guild?.channels.cache.find((channel) => {
-                            if (channel.isText() && channel.topic) {
-                                let idTopic = channel.topic.split(' ')
-                                if (idTopic[0] === member.id && !msgSent) {
-                                    const CID = channel.id
-                                    //console.log('top')
-                                    sendMsg(member, message, ctx, CID)
-                                    msgSent = true
-                                }
+                if ((member.roles.cache.has(firstRole.id) || higherRole(firstRole.id, member) == true) && !member.user.bot) {
+                    let i = 0
+                    //Check each channel for matching ID in topic
+                    message.guild?.channels.cache.forEach(async (channel) => {
+                        i++
+                        if (channel && channel.isText() && channel.topic) {
+                            let idTopic = channel.topic.split(' ')
+                            if (idTopic[0] === member.id && !msgSent) {
+                                const CID = channel.id
+                                //console.log('top')
+                                msgSent = true
+                                success = true
+                                await sendMsg(member, message, ctx, CID)
                             }
-                            return false
-                        })
-                    ) {
-                    } else {
-                        if (!msgSent) {
-                            //console.log('bot')
-                            createChannel(member, message, ctx, msgSent)
                         }
-                    }
+                        //Create channel if reached end of collection and not found
+                        if (i === message.guild?.channels.cache.size && !member.user.bot) {
+                            if (!msgSent) {
+                                //console.log('bot')
+                                createChannel(member, message, ctx, msgSent)
+                                msgSent = true
+                                success = true
+                            }
+                        }
+                    })
                 }
             })
+        }
+        if (success) {
+            message.delete()
+            message
+                .reply('Sending! If this is going out to a large amount of users it may take a minute before it begins, please be patient.')
+                .then((r) => r.delete({ timeout: 10000 }))
         }
     }
 
@@ -97,8 +105,6 @@ export async function sendimg(message: Message, args: string[], client: Client) 
             if (targetChannel?.isText()) {
                 await targetChannel.send(attachment)
             }
-            message.delete()
-            message.reply('Sent!').then((r) => r.delete({ timeout: 10000 }))
         }
     }
 
@@ -122,9 +128,11 @@ export async function sendimg(message: Message, args: string[], client: Client) 
             .then((channel) => {
                 channel.setTopic(user + ' Your personal content channel.')
                 //Change to find the category ID;
-                channel.setParent('803461412755079188', {
-                    lockPermissions: false,
-                })
+                channel
+                    .setParent('803461412755079188', {
+                        lockPermissions: false,
+                    })
+                    .catch((err) => console.error(err))
                 channel.setNSFW(true)
                 if (!msgSent) {
                     msgSent = true
@@ -137,13 +145,8 @@ export async function sendimg(message: Message, args: string[], client: Client) 
     //Sends to higher roles
     function higherRole(currRole: string, member: GuildMember) {
         //ALPHA, ANGEL, GOD, VOID, HCIGBTT
-        let ranks = [
-            '773034879620874322',
-            '773035077067735061',
-            '773035250849677314',
-            '773035399262109728',
-            '786628196002037770',
-        ]
+        //let ranks = ['880539525825306685', '882118125926105138']
+        let ranks = ['773034879620874322', '773035077067735061', '773035250849677314', '773035399262109728', '786628196002037770']
         if (ranks.includes(currRole)) {
             var i = ranks.indexOf(currRole) + 1
             for (i; i < ranks.length; i++) {
