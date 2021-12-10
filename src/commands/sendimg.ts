@@ -62,7 +62,7 @@ export async function sendimg(message: Message, args: string[], client: Client) 
                         i++
                         if (channel && channel.isText() && channel.topic) {
                             let idTopic = channel.topic.split(' ')
-                            if (idTopic[0] === member.id && !msgSent) {
+                            if (idTopic[0] == member.id && !msgSent) {
                                 const CID = channel.id
                                 //console.log('top')
                                 msgSent = true
@@ -71,7 +71,7 @@ export async function sendimg(message: Message, args: string[], client: Client) 
                             }
                         }
                         //Create channel if reached end of collection and not found
-                        if (i === message.guild?.channels.cache.size && !member.user.bot) {
+                        if (i == message.guild?.channels.cache.size && !member.user.bot) {
                             if (!msgSent) {
                                 //console.log('bot')
                                 createChannel(member, message, ctx, msgSent)

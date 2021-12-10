@@ -5,13 +5,16 @@ import { Client, Message, TextChannel } from 'discord.js'
 
 export async function clear(message: Message, args: string[], client: Client) {
     await message.guild?.members.fetch()
+    let count = 0
     message.guild?.channels.cache.forEach((channel) => {
         if (channel.name.indexOf('private') != -1) {
             if (channel.isText() && channel.topic) {
                 if (!message.guild?.members.cache.has(channel.topic.slice(0, channel.topic.indexOf(' ')))) {
                     channel.delete()
+                    count++
                 }
             }
         }
     })
+    message.reply('Cleared: ' + count + ' channels.')
 }
