@@ -3,9 +3,11 @@
 
 import { Message, Client, MessageAttachment, User, GuildMember, Collection, Guild, TeamMember } from 'discord.js'
 import { CanvasRenderingContext2D } from 'canvas'
+import fs from 'fs'
+
 
 export async function sendimg(message: Message, args: string[], client: Client) {
-    //Sets up canvas for watermark
+    //Canvas setup
     const Canvas = require('canvas')
     let canvas: {
         getContext: (arg0: string) => CanvasRenderingContext2D
@@ -13,7 +15,7 @@ export async function sendimg(message: Message, args: string[], client: Client) 
         height: number
         toBuffer: () => any
     }
-    //Shrinks canvas down to fit in discord file limits if needed.
+    //Modify canvas to accomodate discord file size limit.
     const firstMsg = message.attachments.first()
     if (firstMsg && firstMsg.width && firstMsg.height) {
         if (firstMsg.width > 3000) {
@@ -26,7 +28,7 @@ export async function sendimg(message: Message, args: string[], client: Client) 
         const ctx = canvas.getContext('2d')
         const background = await Canvas.loadImage(firstMsg.url)
 
-        //Set font size based on a few image sizes;
+        //Set font size based on a few image sizes
         ctx.drawImage(background, 0, 0, canvas.width, canvas.height)
         if (firstMsg.width > 3000) {
             ctx.font = '250px Arial'
@@ -39,78 +41,80 @@ export async function sendimg(message: Message, args: string[], client: Client) 
         } else {
             ctx.font = '50px Arial'
         }
+
         //Font Color & Stroke
         ctx.fillStyle = 'rgba(255,255,255,0.7)'
         ctx.strokeStyle = 'rgba(0,0,0,0.7)'
-        //Begins checking mentions
-        //Refetch members, roles
+        
+        //Verify tagged role exists and begin
         const firstRole = message.mentions.roles.first()
-        let success = false
         if (firstRole && message.guild) {
             await message.guild.members.fetch()
             await message.guild.roles.fetch()
-            //Checks each member
-            message.guild.members.cache.forEach(async (member) => {
-                //console.log(member.user)
-                //Variable for creating channels
-                let msgSent = false
-                //Check if member has correct role
+            //Loop through each member, and store each user id that has corresponsing roles.
+            let UIDs: string[] = []
+            message.guild.members.cache.forEach((member) => {
                 if ((member.roles.cache.has(firstRole.id) || higherRole(firstRole.id, member) == true) && !member.user.bot) {
-                    let i = 0
-                    //Check each channel for matching ID in topic
-                    message.guild?.channels.cache.forEach(async (channel) => {
-                        i++
-                        if (channel && channel.isText() && channel.topic) {
-                            let idTopic = channel.topic.split(' ')
-                            if (idTopic[0] == member.id && !msgSent) {
-                                const CID = channel.id
-                                //console.log('top')
-                                msgSent = true
-                                success = true
-                                await sendMsg(member, message, ctx, CID)
-                            }
-                        }
-                        //Create channel if reached end of collection and not found
-                        if (i == message.guild?.channels.cache.size && !member.user.bot) {
-                            if (!msgSent) {
-                                //console.log('bot')
-                                createChannel(member, message, ctx, msgSent)
-                                msgSent = true
-                                success = true
-                            }
-                        }
-                    })
+                    UIDs.push(member.user.id)
                 }
             })
-        }
-        if (success) {
-            message.delete()
-            message
-                .reply('Sending! If this is going out to a large amount of users it may take a minute before it begins, please be patient.')
-                .then((r) => r.delete({ timeout: 10000 }))
-        }
-    }
 
-    //Sends msg with attachment
-    async function sendMsg(member: GuildMember, message: Message, ctx: CanvasRenderingContext2D, CID: string) {
-        let user = member.id
-        const msgAttachment = message.attachments.first()
-        if (msgAttachment && msgAttachment.width) {
-            const background = await Canvas.loadImage(msgAttachment.url)
-            ctx.drawImage(background, 0, 0, canvas.width, canvas.height)
-            ctx.fillText(member.user.tag, canvas.width / 4, canvas.height / 2, msgAttachment.width)
-            ctx.strokeText(member.user.tag, canvas.width / 4, canvas.height / 2, msgAttachment.width)
-            let attachment = new MessageAttachment(canvas.toBuffer(), 'marked.jpeg')
-            const targetChannel = message.guild?.channels.cache.get(CID)
-            if (targetChannel?.isText()) {
-                await targetChannel.send(attachment)
+            //Map each UID to appropriate private channel ID
+            let y = 0
+            let userChannelMap = new Map<string, string>()
+            message.guild?.channels.cache.forEach((channel) => {
+                if (channel && channel.isText() && channel.topic) {
+                    let idTopic = channel.topic.split(' ')
+                    if (UIDs.includes(idTopic[0])) {
+                        userChannelMap.set(UIDs[y], channel.id)
+                        y++
+                    }
+                }
+            })
+
+            //Create attachment, load background to be watermarked
+            const msgAttachment = message.attachments.first()
+            const background = await Canvas.loadImage(msgAttachment?.url)
+            //Create images
+            let i = 0
+            for (i = 0; i < UIDs.length; i++) {
+                //Get user
+                let userID = message.guild?.members.cache.get(UIDs[i]);
+                if (msgAttachment && msgAttachment.width && userID) {
+                    //Draw watermark
+                    ctx.drawImage(background, 0, 0, canvas.width, canvas.height)
+                    ctx.fillText(userID.user.tag, canvas.width / 4, canvas.height / 2, msgAttachment.width)
+                    ctx.strokeText(userID.user.tag, canvas.width / 4, canvas.height / 2, msgAttachment.width)
+                    //Send image to corresponding channel
+                    let attachment = new MessageAttachment(canvas.toBuffer(), 'marked.jpeg')
+                    const targetChannel = message.guild?.channels.cache.get(userChannelMap.get(UIDs[i])!)
+                    if (targetChannel?.isText()) {
+                        console.log('send')
+                        targetChannel.send(attachment)
+                    }
+                }
+            }
+
+            //If all goes well
+            if (i == UIDs.length) {
+                message.delete()
+                message.reply('Sending complete!').then((r) => r.delete({ timeout: 10000 }))
             }
         }
+
+        // if (success) {
+        //     message.delete()
+        //     message
+        //         .reply('Sending! If this is going out to a large amount of users it may take a minute before it begins, please be patient.')
+        //         .then((r) => r.delete({ timeout: 10000 }))
+        // }
+
     }
 
-    //Creates private channel
+    //Creates private channels, TODO: make this a seperate command.
     function createChannel(member: GuildMember, message: Message, ctx: CanvasRenderingContext2D, msgSent: Boolean) {
         let user = member.id
+        //Create channel with appropriate permissions
         message.guild?.channels
             .create(member.user.username + '-private', {
                 permissionOverwrites: [
@@ -126,26 +130,27 @@ export async function sendimg(message: Message, args: string[], client: Client) 
                 ],
             })
             .then((channel) => {
+                //Set channel topic with user ID
                 channel.setTopic(user + ' Your personal content channel.')
-                //Change to find the category ID;
+                //TODO: Auto expand categories
+                //Set permissions and parent category
                 channel
                     .setParent('803461412755079188', {
                         lockPermissions: false,
                     })
                     .catch((err) => console.error(err))
-                channel.setNSFW(true)
                 if (!msgSent) {
                     msgSent = true
-                    sendMsg(member, message, ctx, channel.id)
+                    //sendMsg(member, message, ctx, channel.id)
                 }
             })
             .catch((err) => console.error(err))
     }
 
-    //Sends to higher roles
+    //Automatically send to higher roles
     function higherRole(currRole: string, member: GuildMember) {
-        //ALPHA, ANGEL, GOD, VOID, HCIGBTT
         //let ranks = ['880539525825306685', '882118125926105138']
+        //TODO: Auto generate higher roles array
         let ranks = ['773034879620874322', '773035077067735061', '773035250849677314', '773035399262109728', '786628196002037770']
         if (ranks.includes(currRole)) {
             var i = ranks.indexOf(currRole) + 1

@@ -14,9 +14,9 @@ process.on('unhandledRejection', (error) => {
     console.error('Unhandled promise rejection:', error)
 })
 
-client.login('ODM3NDY0NzU0MDIwNTQ4NjE4.YIs71A.TpAg_mSvfX6tej42YigcfEAEbkY')
+client.login('')
 client.options.restRequestTimeout = 30000
-//client.user.setActivity(`-help`, {type:"LISTENING"});
+client.options.retryLimit = Infinity
 
 client.on('message', (message) => {
     if (!message.content.startsWith(prefix) || message.author.bot) return
@@ -25,11 +25,6 @@ client.on('message', (message) => {
     const userCommand = args.shift()?.toLowerCase()
 
     if (userCommand === 'sendimg') {
-        const targetChannel = client.guilds.cache.get('837963162816741426')?.channels.cache.get('838584588024545311')
-        if (targetChannel?.isText()) {
-            const msgAttachment = message.attachments.first()
-            targetChannel.send(msgAttachment ?? 0)
-        }
         console.log(message.content)
         sendimg(message, args, client)
         //commands.get("sendimg").execute(message, args, client);
